@@ -43,7 +43,7 @@ const Chat = ({ session }: ChatProps) => {
   useEffect(() => {
     const fetchMessages = async () => {
       const { data: messages, error } = await supabase
-        .from<Message>('messages')
+        .from('messages')
         .select()
         .order('created_at', { ascending: false })
 
@@ -59,16 +59,20 @@ const Chat = ({ session }: ChatProps) => {
 
   // Listen to messages updates
   useEffect(() => {
-    const messagesSub = supabase
-      .from<Message>('messages')
-      .on('INSERT', (payload) => {
-        // Prepend new messages received
-        setMessages((m) => [payload.new, ...m])
-      })
+    const messagesChannel = supabase
+      .channel('public:messages')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        (payload: any) => {
+          // Prepend new messages received
+          setMessages((m) => [payload.new as Message, ...m])
+        }
+      )
       .subscribe()
 
     return () => {
-      supabase.removeSubscription(messagesSub)
+      supabase.removeChannel(messagesChannel)
     }
   }, [])
 

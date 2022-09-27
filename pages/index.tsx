@@ -9,13 +9,22 @@ const Home: NextPage = () => {
   const [session, setSession] = useState<Session | null>(null)
 
   useEffect(() => {
-    setSession(supabase.auth.session())
+    const fetchSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      setSession(session)
+    }
 
-    const sub = supabase.auth.onAuthStateChange((_event, session) => {
+    fetchSession()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
     })
 
-    return sub.data?.unsubscribe
+    return subscription.unsubscribe
   }, [])
 
   return session === null ? (
